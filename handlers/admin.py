@@ -57,7 +57,7 @@ async def add_svc_name(callback: CallbackQuery, state: FSMContext):
     if int(callback.from_user.id) != ADMIN_ID:
         return
     logging.info("admin: start adding service")
-    await callback.message.answer("Название услуги (например: Маникюр + гель-лак):")
+    await callback.message.edit_text("Название услуги (например: Маникюр + гель-лак):")
     # set state in current chat
     await state.set_state(AdminState.adding_service_name)
     # also set in private chat so admin can ответить туда
@@ -76,7 +76,7 @@ async def set_hours_start(callback: CallbackQuery, state: FSMContext):
         return
     
     hrs = await get_work_hours()
-    await callback.message.answer(f"Текущие часы работы: {hrs[0]}-{hrs[1]}.\nВведите новые в формате HH:MM-HH:MM:")
+    await callback.message.edit_text(f"Текущие часы работы: {hrs[0]}-{hrs[1]}.\nВведите новые в формате HH:MM-HH:MM:")
     await state.set_state(AdminState.setting_hours)
     key = StorageKey(bot_id=bot.id, chat_id=callback.from_user.id, user_id=callback.from_user.id)
     try:
@@ -100,7 +100,7 @@ async def add_svc_price(message: Message, state: FSMContext):
         logging.info(f"admin: private storage updated, state={cur} for key={key}")
     except Exception:
         logging.exception("admin: failed to update private storage with name")
-    await message.answer("Введите цену (только цифры):")
+    await message.answer("✏️ Введите цену (только цифры):")
     await state.set_state(AdminState.adding_service_price)
 
 
@@ -117,7 +117,7 @@ async def ask_duration(message: Message, state: FSMContext):
         logging.info(f"admin: private storage price set, state={cur} for key={key}")
     except Exception:
         logging.exception("admin: failed to update private storage with price")
-    await message.answer("Введите примерное время выполнения услуги в минутах (например: 60):")
+    await message.answer("✏️ Введите примерное время выполнения услуги в минутах (например: 60):")
     await state.set_state(AdminState.adding_service_duration)
 
 
