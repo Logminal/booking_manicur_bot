@@ -8,7 +8,7 @@ def main_menu_kb(user_id: int):
     kb.button(text="💅 Записаться", callback_data="book")
     kb.button(text="📅 Мои записи", callback_data="my_bookings")
     
-    if int(user_id) == ADMIN_ID:
+    if user_id in ADMIN_ID:
         kb.button(text="🛠 Админка", callback_data="admin_panel")
     
     kb.adjust(1)

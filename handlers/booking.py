@@ -157,10 +157,11 @@ async def finish(callback: CallbackQuery, state: FSMContext):
     note_text = f"🔔 Новая запись: @{callback.from_user.username}\n{data['service']} - {data['date']} {data['time']}"
     logging.info(f"admin notification: {note_text}")
     if ADMIN_ID:
-        try:
-            await bot.send_message(ADMIN_ID, note_text)
-        except Exception as e:
-            logging.error(f"Не удалось отправить уведомление админу: {e}")
+        for admin_id in ADMIN_ID:
+            try:
+                await bot.send_message(admin_id, note_text)
+            except Exception as e:
+                logging.error(f"Не удалось отправить уведомление админу {admin_id}: {e}")
     else:
         logging.warning("ADMIN_ID не задан, уведомление не отправлено")
     

@@ -18,7 +18,7 @@ router = Router()
 @router.callback_query(F.data == "admin_panel")
 async def admin_panel(callback: CallbackQuery):
     """Админ панель"""
-    if int(callback.from_user.id) != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_ID:
         await callback.answer(f"Доступ запрещен! Ваш ID: {callback.from_user.id}", show_alert=True)
         return
     
@@ -68,7 +68,7 @@ async def render_booking_page(callback: CallbackQuery, page: int):
 @router.callback_query(F.data == "view_all_bookings")
 async def view_all_bookings(callback: CallbackQuery):
     """Начало просмотра всех записей"""
-    if int(callback.from_user.id) != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_ID:
         return
     await render_booking_page(callback, page=0)
 
@@ -77,7 +77,7 @@ async def view_all_bookings(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("bookings_page_"))
 async def bookings_page(callback: CallbackQuery):
     """Переключение страниц общего списка записей"""
-    if int(callback.from_user.id) != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_ID:
         return
     page = int(callback.data.replace("bookings_page_", ""))
     await render_booking_page(callback, page)
@@ -104,7 +104,7 @@ async def add_svc_name(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "set_hours")
 async def set_hours_start(callback: CallbackQuery, state: FSMContext):
     """Запрос часов работы. дублируем состояние в приватный чат"""
-    if int(callback.from_user.id) != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_ID:
         return
     
     hrs = await get_work_hours()
@@ -177,7 +177,7 @@ async def add_svc_final(message: Message, state: FSMContext):
 
 @router.callback_query(F.data.startswith("done_"))
 async def mark_done(callback: CallbackQuery):
-    if int(callback.from_user.id) != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_ID:
         return
     payload = callback.data.replace("done_", "")
     if ":" in payload:
@@ -193,7 +193,7 @@ async def mark_done(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("cancel_"))
 async def mark_canceled(callback: CallbackQuery):
-    if int(callback.from_user.id) != ADMIN_ID:
+    if callback.from_user.id not in ADMIN_ID:
         return
     payload = callback.data.replace("cancel_", "")
     if ":" in payload:
