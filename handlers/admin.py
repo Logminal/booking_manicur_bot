@@ -26,29 +26,61 @@ async def admin_panel(callback: CallbackQuery):
     await callback.message.edit_text("Панель управления мастером 🛠", reply_markup=kb)
 
 
-@router.callback_query(F.data == "view_all_bookings")
-async def view_all_bookings(callback: CallbackQuery):
-    """Просмотр всех записей с возможностью пометить статус"""
-    if int(callback.from_user.id) != ADMIN_ID:
-        return
-    
-    bookings = await get_all_bookings()
-    
-    if not bookings:
+
+# helper to render a page of bookings
+async def render_booking_page(callback: CallbackQuery, page: int):
+    all_bookings = await get_all_bookings()
+    per_page = 5
+    total = len(all_bookings)
+    pages = (total + per_page - 1) // per_page
+    if page < 0:
+        page = 0
+    if page >= pages:
+        page = pages - 1 if pages > 0 else 0
+
+    start = page * per_page
+    page_items = all_bookings[start:start+per_page]
+
+    if not page_items:
         await callback.answer("Записей в базе пока нет.", show_alert=True)
         return
-    
-    text = "📋 Все записи клиентов:\n\n"
+
+    text = f"📋 Все записи клиентов (страница {page+1}/{pages}):\n\n"
     kb = InlineKeyboardBuilder()
-    for bid, username, service, date, time, duration, status in bookings:
+    for bid, username, service, date, time, duration, status in page_items:
         text += f"#{bid} @{username} | 📅 {date} {time} | 💅 {service} | ⏱ {duration} мин | статус: {status}\n"
         label = f"@{username} — {service}"
-        kb.button(text=f"✅ {label}", callback_data=f"done_{bid}")
-        kb.button(text=f"❌ {label}", callback_data=f"cancel_{bid}")
+        kb.button(text=f"✅ {label}", callback_data=f"done_{bid}:{page}")
+        kb.button(text=f"❌ {label}", callback_data=f"cancel_{bid}:{page}")
         kb.adjust(2)
-    kb.button(text="⬅️ Назад", callback_data="admin_panel")
+    # navigation buttons are added directly to kb so no markup-nesting errors
+    if page > 0:
+        kb.button(text="◀️ Назад", callback_data=f"bookings_page_{page-1}")
+    if page < pages-1:
+        kb.button(text="▶️ Далее", callback_data=f"bookings_page_{page+1}")
+    kb.adjust(2)
+    kb.button(text="⬅️ Главное", callback_data="admin_panel")
     kb.adjust(1)
-    await callback.message.edit_text(text[:4000], reply_markup=kb.as_markup())
+
+    await callback.message.edit_text(text, reply_markup=kb.as_markup())
+
+
+@router.callback_query(F.data == "view_all_bookings")
+async def view_all_bookings(callback: CallbackQuery):
+    """Начало просмотра всех записей"""
+    if int(callback.from_user.id) != ADMIN_ID:
+        return
+    await render_booking_page(callback, page=0)
+
+
+
+@router.callback_query(F.data.startswith("bookings_page_"))
+async def bookings_page(callback: CallbackQuery):
+    """Переключение страниц общего списка записей"""
+    if int(callback.from_user.id) != ADMIN_ID:
+        return
+    page = int(callback.data.replace("bookings_page_", ""))
+    await render_booking_page(callback, page)
 
 
 @router.callback_query(F.data == "add_svc")
@@ -147,20 +179,32 @@ async def add_svc_final(message: Message, state: FSMContext):
 async def mark_done(callback: CallbackQuery):
     if int(callback.from_user.id) != ADMIN_ID:
         return
-    bid = int(callback.data.replace("done_", ""))
+    payload = callback.data.replace("done_", "")
+    if ":" in payload:
+        bid_str, page_str = payload.split(":", 1)
+        page = int(page_str)
+    else:
+        bid_str, page = payload, 0
+    bid = int(bid_str)
     await update_booking_status(bid, "done")
     await callback.answer("Отмечено как завершено")
-    await view_all_bookings(callback)
+    await render_booking_page(callback, page)
 
 
 @router.callback_query(F.data.startswith("cancel_"))
 async def mark_canceled(callback: CallbackQuery):
     if int(callback.from_user.id) != ADMIN_ID:
         return
-    bid = int(callback.data.replace("cancel_", ""))
+    payload = callback.data.replace("cancel_", "")
+    if ":" in payload:
+        bid_str, page_str = payload.split(":", 1)
+        page = int(page_str)
+    else:
+        bid_str, page = payload, 0
+    bid = int(bid_str)
     await update_booking_status(bid, "canceled")
     await callback.answer("Отменено")
-    await view_all_bookings(callback)
+    await render_booking_page(callback, page)
 
 
 @router.message(AdminState.setting_hours)
